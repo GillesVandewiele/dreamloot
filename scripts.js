@@ -81,6 +81,7 @@ function init() {
     huntinfo_splitprofit = document.getElementById("huntinfo_splitprofit");
     huntinfo_playerstable = document.getElementById("huntinfo_playerstb");
     huntinfo_selllocation = document.getElementById("huntinfo_selllocation");
+    huntinfo_item_split = document.getElementById("huntinfo_item_split");
 
     document.body.addEventListener("keydown", onkeydown_global);
 }
@@ -407,11 +408,31 @@ function huntinfo_calculate_loot() {
     totalearnings += stoi(document.getElementById("loottb_gold_itemquantity").value);
 
     let cur_row;
+    var items = [];
+    var values = [];
     for (let i = 0; i < loottable_body.rows.length - 1; i++) {
         cur_row = loottable_body.rows[i];
+        console.log(cur_row.getAttribute("data-itemindex"));
+        for (let j = 0; j < stoi(cur_row.cells[LOOTTB_COLUMN.QUANTITY].firstChild.value); j++){
+            items.push(cur_row.getAttribute("data-itemindex"));
+            values.push(stoi(cur_row.cells[LOOTTB_COLUMN.PRICE].firstChild.value));
+        }
         totalearnings += stoi(cur_row.cells[LOOTTB_COLUMN.PRICE].firstChild.value * stoi(cur_row.cells[LOOTTB_COLUMN.QUANTITY].firstChild.value));
     }
     let splitprofit = (totalearnings - totalwaste) / (players().length - 1);
+
+
+    // Sort the items
+    var indices = Array.from(Array(items.length).keys());
+    indices.sort(function(a, b)  { return values[a] < values[b] ? -1 : values[a] > values[b] ? 1 : 0; });
+    var shuffled_items = [];
+    var shuffled_values = [];
+    for (let i = 0; i < indices.length; i++) {
+        shuffled_items.push(items[indices[i]]);
+        shuffled_values.push(values[indices[i]]);
+    }
+    items = shuffled_items;
+    values = shuffled_values;
 
     huntinfo_totalearnings.innerText = gtos(totalearnings);
     huntinfo_profit.innerText = gtos(totalearnings - totalwaste);
@@ -450,6 +471,40 @@ function huntinfo_calculate_loot() {
         }
         huntinfo_playerstable.style.display = "table";
     } else huntinfo_playerstable.style.display = "none";
+
+    var items_per_player = {};
+    if (players().length > 2) {
+        // Split the items over the players to best match their profit share
+        // Use best-fit heuristic (TODO: Can we improve)
+        let row, plname, plsupplies, plshare;
+        for (let i = 1; i < players().length; i++) {
+            plshare = stoi(player(i).getAttribute("data-waste")) + splitprofit;
+            plname = player(i).querySelector(".playername").value;
+            items_per_player[plname] = [];
+
+            var cap = 0;
+            let j = 0;
+            while (j < items.length) {
+                if (cap >= plshare){
+                    break;
+                }
+                if (cap + items[j] < plshare){
+                    cap += values[j];
+                    items_per_player[plname].push(items[j])
+                }
+                j++;
+            }
+            items.splice(0, j + 1);
+            values.splice(0, j + 1);
+        }
+    }
+
+        // Calculate the differences that players need to pay to each other
+
+    /*console.log(loottable_body);
+    console.log(splitprofit);
+    console.log(player(0));
+    console.log(player(1));*/
 
     // Find out where to sell the loot
     if (loottable_body.rows.length > 1 && loottable_body.rows[0].cells[LOOTTB_COLUMN.NAME].firstChild.value != "") {
@@ -613,7 +668,16 @@ function huntinfo_calculate_loot() {
         }
 
         huntinfo_selllocation.style.display = "block";
-    } else huntinfo_selllocation.style.display = "none";
+
+        for (let i = 1; i < huntinfo_selllocation.children.length; i++) {
+
+        }
+        // Show item splits
+        huntinfo_item_split.style.display = "block";
+    } else {
+        huntinfo_selllocation.style.display = "none";
+        huntinfo_item_split.style.display = "none";
+    }
 }
 
 // ---------------

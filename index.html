@@ -55,6 +55,7 @@
             <!-- HuntInfo Infopanel -->
             <div class="infopanel">
                 <button class="headerbutton-left" onclick="huntinfo_calculate_loot()">Calculate loot</button>
+                <!--<button class="headerbutton-right" onclick="huntinfo_split_loot()">Split items</button>-->
                 <h1>Hunt Info</h1>
                 <center>
                     <table id="huntinfo">
@@ -81,6 +82,9 @@
                     <div id="huntinfo_selllocation" style="margin-top: 15px; display: none">
                         <h2 style="margin-top: 20px; margin-bottom: 5px">Where to sell</h2>
                     </div>
+                    <div id="huntinfo_item_split" style="margin-top: 15px; display: none">
+                        <h2 style="margin-top: 20px; margin-bottom: 5px">Item Split</h2>
+                    </div>
                 </center>
             </div>
         </div>
@@ -94,7 +98,7 @@
             <kbd>Ctrl</kbd> + <kbd>~</kbd> : Add player.<br>
             <kbd>PageUp</kbd> / <kbd>PageDown</kbd> : Select upper/lower input field.<br>
         </p>
-        <footer class="footer-source"><small>You can check out the source-code of this project at <a href="https://github.com/Dreamshade-1911/dreamloot">Github</a>.</small></footer>
+        <footer class="footer-source"><small>Forked from dreamshade-1911, extended by Gilles. You can check out the source-code of this project at <a href="https://github.com/Dreamshade-1911/dreamloot">Github</a>.</small></footer>
     </div>
 
     <template id="playerpanel-template">
