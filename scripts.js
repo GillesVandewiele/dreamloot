@@ -44,7 +44,8 @@ huntinfo_totalearnings,
 huntinfo_profit,
 huntinfo_splitprofit,
 huntinfo_playerstable,
-huntinfo_selllocation;
+huntinfo_selllocation,
+huntinfo_item_split;
 
 var autocomplete_lastsize = 0;
 var addcreature_autocomplete_lastindex = -1;
@@ -412,9 +413,8 @@ function huntinfo_calculate_loot() {
     var values = [];
     for (let i = 0; i < loottable_body.rows.length - 1; i++) {
         cur_row = loottable_body.rows[i];
-        console.log(cur_row.getAttribute("data-itemindex"));
         for (let j = 0; j < stoi(cur_row.cells[LOOTTB_COLUMN.QUANTITY].firstChild.value); j++){
-            items.push(cur_row.getAttribute("data-itemindex"));
+            items.push(cur_row.cells[LOOTTB_COLUMN.NAME].firstChild.value);
             values.push(stoi(cur_row.cells[LOOTTB_COLUMN.PRICE].firstChild.value));
         }
         totalearnings += stoi(cur_row.cells[LOOTTB_COLUMN.PRICE].firstChild.value * stoi(cur_row.cells[LOOTTB_COLUMN.QUANTITY].firstChild.value));
@@ -472,34 +472,86 @@ function huntinfo_calculate_loot() {
         huntinfo_playerstable.style.display = "table";
     } else huntinfo_playerstable.style.display = "none";
 
+
+    // Clear item split tables
+    for (let i = huntinfo_item_split.children.length - 1; i > 0; i--) {
+        for (let j = huntinfo_item_split.children[i].tBodies.length - 1; j >= 0; j--)
+            huntinfo_item_split.children[i].tBodies[j].remove();
+    }
+
     var items_per_player = {};
     if (players().length > 2) {
+        huntinfo_item_split.style.display = "table";
+
         // Split the items over the players to best match their profit share
         // Use best-fit heuristic (TODO: Can we improve)
         let row, plname, plsupplies, plshare;
         for (let i = 1; i < players().length; i++) {
             plshare = stoi(player(i).getAttribute("data-waste")) + splitprofit;
             plname = player(i).querySelector(".playername").value;
-            items_per_player[plname] = [];
+            items_per_player[plname] = {};
 
             var cap = 0;
             let j = 0;
             while (j < items.length) {
+                console.log(items[j], values[j], items[j] in items_per_player[plname]);
                 if (cap >= plshare){
                     break;
                 }
-                if (cap + items[j] < plshare){
-                    cap += values[j];
-                    items_per_player[plname].push(items[j])
+                cap += values[j];
+                if(items[j] in items_per_player[plname]){
+                    items_per_player[plname][items[j]][0] += 1;
+                    items_per_player[plname][items[j]][1] += values[j];
+                } else{
+                    items_per_player[plname][items[j]] = [1, values[j]];
                 }
                 j++;
             }
             items.splice(0, j + 1);
             values.splice(0, j + 1);
+            let playerstbody = document.createElement("tbody");
+            //playerstbody.className = "npctbody";
+
+            let totalValue = 0;
+            for (let j = 0; j < Object.keys(items_per_player[plname]).length; j++) {
+                totalValue += items_per_player[plname][Object.keys(items_per_player[plname])[j]][1]
+            }
+
+            let tblHead = document.createElement("tr");
+            let tblHeadCell1 = document.createElement("th");
+            let tblHeadCell2 = document.createElement("th");
+            tblHeadCell1.innerText = plname;
+            console.log(totalValue.toString());
+            tblHeadCell2.innerText = gtos(totalValue);
+            tblHead.appendChild(tblHeadCell1);
+            tblHead.appendChild(document.createElement("th"));
+            tblHead.appendChild(tblHeadCell2);
+            playerstbody.appendChild(tblHead);
+
+            for (let j = 0; j < Object.keys(items_per_player[plname]).length; j++) {
+
+                let tblRow = document.createElement("tr");
+                let tblCell1 = document.createElement("td");
+                tblCell1.innerText = Object.keys(items_per_player[plname])[j];
+                let tblCell2 = document.createElement("td");
+                tblCell2.innerText = items_per_player[plname][Object.keys(items_per_player[plname])[j]][0];
+                let tblCell3 = document.createElement("td");
+                tblCell3.innerText = gtos(items_per_player[plname][Object.keys(items_per_player[plname])[j]][1]);
+                
+                tblRow.appendChild(tblCell1);
+                tblRow.appendChild(tblCell2);
+                tblRow.appendChild(tblCell3);
+
+                playerstbody.appendChild(tblRow);
+            }
+            huntinfo_item_split.appendChild(playerstbody);
+
         }
+    } else{
+        huntinfo_item_split.style.display = "none";
     }
 
-        // Calculate the differences that players need to pay to each other
+    console.log(items_per_player);
 
     /*console.log(loottable_body);
     console.log(splitprofit);
@@ -668,12 +720,6 @@ function huntinfo_calculate_loot() {
         }
 
         huntinfo_selllocation.style.display = "block";
-
-        for (let i = 1; i < huntinfo_selllocation.children.length; i++) {
-
-        }
-        // Show item splits
-        huntinfo_item_split.style.display = "block";
     } else {
         huntinfo_selllocation.style.display = "none";
         huntinfo_item_split.style.display = "none";
